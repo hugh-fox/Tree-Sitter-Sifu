@@ -3,6 +3,8 @@ const io = std.io;
 const print = std.debug.print;
 const root = @import("root.zig");
 
+pub fn main() void {}
+
 test "parse zig as sifu" {
     var err_buffer: [1024]u8 = undefined;
     var stderr_writer = std.fs.File.stderr().writer(&err_buffer);
