@@ -16,22 +16,20 @@ module.exports = grammar({
   ],
 
   rules: {
-    source_file: $ => optional($._trie_content),
+    // Top-level pattern: sequence of terms separated by newlines
+    source_file: $ => repeat(seq(
+      $.pattern,
+      prec.right(6, optional('\n'))
+    )),
+
+    pattern: $ => prec.right(0,
+      repeat1($._term),
+    ),
 
     // Comments
     comment: $ => token(seq('#', /.*/)),
 
-    _trie_content: $ => choice(
-      $.pattern,
-    ),
-
-    pattern: $ => prec.right(0, repeat1(
-      $.term,
-    )),
-
-    term: $ => choice(
-      $.nested_pattern,
-      $.nested_trie,
+    _term: $ => choice(
       $.key,
       $.var,
       $.number,
@@ -39,12 +37,13 @@ module.exports = grammar({
       $.symbol,
       $.comma_expr,
       $.semicolon_expr,
-      $.newline_expr,  // Add newline as semicolon equivalent
       $.long_match,
       $.long_arrow,
       $.infix,
       $.short_match,
       $.short_arrow,
+      $.nested_pattern,
+      $.nested_trie,
       // $.quote,
     ),
 
@@ -54,11 +53,11 @@ module.exports = grammar({
     number: $ => /[0-9]+(\.[0-9]+)?/,
     string: $ => /"([^"\\]|\\.)*"/,
     // Unicode-aware symbols (excluding reserved characters)
-    symbol: $ => /[!@$%^&*+=|<>?\/\\~`\p{S}]+/u,
+    symbol: $ => /[:!@$%^&*+-=|<>?\/\\~`\p{S}]+/u,
 
     // Nested structures
-    nested_pattern: $ => seq('(', optional($.pattern), ')'),
-    nested_trie: $ => seq('{', optional($._trie_content), '}'),
+    nested_pattern: $ => seq('(', repeat($.pattern), ')'),
+    nested_trie: $ => seq('{', repeat($.pattern), '}'),
 
     // Quotes
     quote: $ => seq('`', optional($.pattern), '`'),
@@ -67,46 +66,47 @@ module.exports = grammar({
     // Semicolon and newline - lowest precedence
     semicolon_expr: $ => prec.right(1, seq(
       ';',
-      optional(field('right', $._trie_content))
+      optional($.pattern),
     )),
 
+    // Add newline as semicolon equivalent, but only within nested structures
     newline_expr: $ => prec.right(1, seq(
       '\n',
-      optional(field('right', $._trie_content))
+      optional($.pattern),
     )),
 
     // Long match and long arrow
     long_match: $ => prec.right(2, seq(
       '::',
-      optional(field('from', choice($._trie_content, $.nested_trie)))
+      optional($.pattern),
     )),
 
     long_arrow: $ => prec.right(2, seq(
       '-->',
-      optional(field('into', choice($._trie_content, $.nested_trie)))
+      optional($.pattern),
     )),
 
     // Comma - medium-low precedence
     comma_expr: $ => prec.right(3, seq(
       ',',
-      optional(field('right', $._trie_content))
+      optional($.pattern),
     )),
 
     // Infix - medium precedence
     infix: $ => prec.right(4, seq(
-      field('op', $.symbol),
-      optional(field('right', choice($._trie_content, $.nested_pattern, $.nested_trie)))
+      $.symbol,
+      optional($.pattern),
     )),
 
     // Short match and short arrow - highest precedence
     short_match: $ => prec.right(5, seq(
       ':',
-      optional(field('from', choice($._trie_content, $.nested_trie)))
+      optional($.pattern),
     )),
 
     short_arrow: $ => prec.right(5, seq(
       '->',
-      optional(field('into', choice($._trie_content, $.nested_trie)))
+      optional($.pattern),
     )),
   }
 });

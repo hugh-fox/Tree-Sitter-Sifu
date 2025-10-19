@@ -3,16 +3,43 @@
   "name": "sifu",
   "rules": {
     "source_file": {
-      "type": "CHOICE",
-      "members": [
-        {
+      "type": "REPEAT",
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "pattern"
+          },
+          {
+            "type": "PREC_RIGHT",
+            "value": 6,
+            "content": {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "\n"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "pattern": {
+      "type": "PREC_RIGHT",
+      "value": 0,
+      "content": {
+        "type": "REPEAT1",
+        "content": {
           "type": "SYMBOL",
-          "name": "_trie_content"
-        },
-        {
-          "type": "BLANK"
+          "name": "_term"
         }
-      ]
+      }
     },
     "comment": {
       "type": "TOKEN",
@@ -30,37 +57,9 @@
         ]
       }
     },
-    "_trie_content": {
+    "_term": {
       "type": "CHOICE",
       "members": [
-        {
-          "type": "SYMBOL",
-          "name": "pattern"
-        }
-      ]
-    },
-    "pattern": {
-      "type": "PREC_RIGHT",
-      "value": 0,
-      "content": {
-        "type": "REPEAT1",
-        "content": {
-          "type": "SYMBOL",
-          "name": "term"
-        }
-      }
-    },
-    "term": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "SYMBOL",
-          "name": "nested_pattern"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "nested_trie"
-        },
         {
           "type": "SYMBOL",
           "name": "key"
@@ -91,10 +90,6 @@
         },
         {
           "type": "SYMBOL",
-          "name": "newline_expr"
-        },
-        {
-          "type": "SYMBOL",
           "name": "long_match"
         },
         {
@@ -112,6 +107,14 @@
         {
           "type": "SYMBOL",
           "name": "short_arrow"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "nested_pattern"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "nested_trie"
         }
       ]
     },
@@ -135,7 +138,7 @@
     },
     "symbol": {
       "type": "PATTERN",
-      "value": "[!@$%^&*+=|<>?\\/\\\\~`\\p{S}]+",
+      "value": "[:!@$%^&*+-=|<>?\\/\\\\~`\\p{S}]+",
       "flags": "u"
     },
     "nested_pattern": {
@@ -146,16 +149,11 @@
           "value": "("
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "pattern"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "pattern"
+          }
         },
         {
           "type": "STRING",
@@ -171,16 +169,11 @@
           "value": "{"
         },
         {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SYMBOL",
-              "name": "_trie_content"
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "pattern"
+          }
         },
         {
           "type": "STRING",
@@ -227,12 +220,8 @@
             "type": "CHOICE",
             "members": [
               {
-                "type": "FIELD",
-                "name": "right",
-                "content": {
-                  "type": "SYMBOL",
-                  "name": "_trie_content"
-                }
+                "type": "SYMBOL",
+                "name": "pattern"
               },
               {
                 "type": "BLANK"
@@ -256,12 +245,8 @@
             "type": "CHOICE",
             "members": [
               {
-                "type": "FIELD",
-                "name": "right",
-                "content": {
-                  "type": "SYMBOL",
-                  "name": "_trie_content"
-                }
+                "type": "SYMBOL",
+                "name": "pattern"
               },
               {
                 "type": "BLANK"
@@ -285,21 +270,8 @@
             "type": "CHOICE",
             "members": [
               {
-                "type": "FIELD",
-                "name": "from",
-                "content": {
-                  "type": "CHOICE",
-                  "members": [
-                    {
-                      "type": "SYMBOL",
-                      "name": "_trie_content"
-                    },
-                    {
-                      "type": "SYMBOL",
-                      "name": "nested_trie"
-                    }
-                  ]
-                }
+                "type": "SYMBOL",
+                "name": "pattern"
               },
               {
                 "type": "BLANK"
@@ -323,21 +295,8 @@
             "type": "CHOICE",
             "members": [
               {
-                "type": "FIELD",
-                "name": "into",
-                "content": {
-                  "type": "CHOICE",
-                  "members": [
-                    {
-                      "type": "SYMBOL",
-                      "name": "_trie_content"
-                    },
-                    {
-                      "type": "SYMBOL",
-                      "name": "nested_trie"
-                    }
-                  ]
-                }
+                "type": "SYMBOL",
+                "name": "pattern"
               },
               {
                 "type": "BLANK"
@@ -361,12 +320,8 @@
             "type": "CHOICE",
             "members": [
               {
-                "type": "FIELD",
-                "name": "right",
-                "content": {
-                  "type": "SYMBOL",
-                  "name": "_trie_content"
-                }
+                "type": "SYMBOL",
+                "name": "pattern"
               },
               {
                 "type": "BLANK"
@@ -383,36 +338,15 @@
         "type": "SEQ",
         "members": [
           {
-            "type": "FIELD",
-            "name": "op",
-            "content": {
-              "type": "SYMBOL",
-              "name": "symbol"
-            }
+            "type": "SYMBOL",
+            "name": "symbol"
           },
           {
             "type": "CHOICE",
             "members": [
               {
-                "type": "FIELD",
-                "name": "right",
-                "content": {
-                  "type": "CHOICE",
-                  "members": [
-                    {
-                      "type": "SYMBOL",
-                      "name": "_trie_content"
-                    },
-                    {
-                      "type": "SYMBOL",
-                      "name": "nested_pattern"
-                    },
-                    {
-                      "type": "SYMBOL",
-                      "name": "nested_trie"
-                    }
-                  ]
-                }
+                "type": "SYMBOL",
+                "name": "pattern"
               },
               {
                 "type": "BLANK"
@@ -436,21 +370,8 @@
             "type": "CHOICE",
             "members": [
               {
-                "type": "FIELD",
-                "name": "from",
-                "content": {
-                  "type": "CHOICE",
-                  "members": [
-                    {
-                      "type": "SYMBOL",
-                      "name": "_trie_content"
-                    },
-                    {
-                      "type": "SYMBOL",
-                      "name": "nested_trie"
-                    }
-                  ]
-                }
+                "type": "SYMBOL",
+                "name": "pattern"
               },
               {
                 "type": "BLANK"
@@ -474,21 +395,8 @@
             "type": "CHOICE",
             "members": [
               {
-                "type": "FIELD",
-                "name": "into",
-                "content": {
-                  "type": "CHOICE",
-                  "members": [
-                    {
-                      "type": "SYMBOL",
-                      "name": "_trie_content"
-                    },
-                    {
-                      "type": "SYMBOL",
-                      "name": "nested_trie"
-                    }
-                  ]
-                }
+                "type": "SYMBOL",
+                "name": "pattern"
               },
               {
                 "type": "BLANK"
