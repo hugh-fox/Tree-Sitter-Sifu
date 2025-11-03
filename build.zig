@@ -97,7 +97,7 @@ pub fn build(b: *std.Build) void {
     module.addImport("tree_sitter", tree_sitter.module("tree_sitter"));
 
     module.addLibraryPath(b.path("tree-sitter-sifu"));
-    module.linkSystemLibrary("sifu", .{});
+    module.linkSystemLibrary("tree-sitter-sifu/sifu", .{});
 
     b.installArtifact(exe);
 

@@ -2,6 +2,7 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const io = std.io;
 const Reader = io.Reader;
+const Writer = io.Writer;
 const ts = @import("tree_sitter");
 pub const Tree = ts.Tree;
 pub const Node = ts.Node;
@@ -39,7 +40,7 @@ pub fn parseFile(
     return parser.parseStringEncoding(source, old_tree, ts.Input.Encoding.utf8);
 }
 
-pub fn parseReader(
+pub fn parseAll(
     allocator: Allocator,
     buffer: *std.ArrayList(u8),
     reader: *Reader,
@@ -55,4 +56,20 @@ pub fn parseReader(
     try reader.appendRemainingUnlimited(allocator, buffer);
 
     return parser.parseStringEncoding(buffer.items, old_tree, ts.Input.Encoding.utf8);
+}
+
+pub fn parseLine(
+    buffer: *Writer.Allocating,
+    reader: *Reader,
+) !?*Tree {
+    const language = tree_sitter_sifu();
+    defer language.destroy();
+
+    const parser = Parser.create();
+    try parser.setLanguage(language);
+
+    _ = try reader.streamDelimiter(&buffer.writer, '\n');
+    _ = try reader.takeByte(); // consume the newline
+
+    return parser.parseStringEncoding(buffer.written(), null, ts.Input.Encoding.utf8);
 }
