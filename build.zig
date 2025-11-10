@@ -28,11 +28,6 @@ pub fn build(b: *std.Build) void {
     rename_so.setCwd(.{ .cwd_relative = "tree-sitter-sifu" });
     rename_so.step.dependOn(&tree_sitter_build.step);
 
-    const sleep = b.addSystemCommand(&.{
-        "sleep",
-        "1",
-    });
-    sleep.step.dependOn(&rename_so.step);
     // Create an install step to copy the library to the output directory
     // const install_lib = b.addInstallFile(
     //     .{ .cwd_relative = "tree-sitter-sifu/libsifu.so" },
@@ -42,7 +37,7 @@ pub fn build(b: *std.Build) void {
 
     // Create a generate step that can be run manually
     const generate_step = b.step("generate", "Generate and build tree-sitter parser");
-    generate_step.dependOn(&sleep.step);
+    generate_step.dependOn(&rename_so.step);
 
     // Make the default the generate step
     b.getInstallStep().dependOn(generate_step);
@@ -135,16 +130,6 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
 
-    // Optional: Add a clean step to remove generated files
-    const clean_step = b.step("clean", "Clean generated tree-sitter files");
-    const clean_cmd = b.addSystemCommand(&.{
-        "rm",
-        "-f",
-        "sifu.so",
-        "libsifu.so",
-    });
-    clean_cmd.setCwd(.{ .cwd_relative = "tree-sitter-sifu" });
-    clean_step.dependOn(&clean_cmd.step);
     // Optional: Add a clean step to remove generated files
     const clean_step = b.step("clean", "Clean generated tree-sitter files");
     const clean_cmd = b.addSystemCommand(&.{
