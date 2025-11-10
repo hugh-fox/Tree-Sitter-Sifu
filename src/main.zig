@@ -1,42 +1,41 @@
 const std = @import("std");
 const io = std.io;
+const fs = std.fs;
 const print = std.debug.print;
 const root = @import("root.zig");
+const panic = std.debug.panic;
+const allocator = std.heap.page_allocator;
 
-pub fn main() void {}
-
-test "parse zig as sifu" {
-    var err_buffer: [1024]u8 = undefined;
-    var stderr_writer = std.fs.File.stderr().writer(&err_buffer);
-    const err = &stderr_writer.interface;
+pub fn main() !void {
+    var stdin_buffer: [1024]u8 = undefined;
+    var stdin_reader = fs.File.stdin().reader(&stdin_buffer);
+    var stdout_buffer: [1024]u8 = undefined;
+    var stdout_writer = fs.File.stdout().writer(&stdout_buffer);
+    const stdin = &stdin_reader.interface;
+    const stdout = &stdout_writer.interface;
 
     // Parse some source code and get the root node
     const parser = try root.createParser();
     defer parser.destroy();
-    const tree = parser.parseString("pub fn main() !void {}", null);
-    defer tree.?.destroy();
 
-    const node = tree.?.rootNode();
-    try node.format(err);
-    try err.printAsciiChar('\n', .{});
-    try err.print("Kind: `{s}`\n", .{node.kind()});
-    try err.flush();
+    var buffer = std.Io.Writer.Allocating.init(allocator);
 
-    std.debug.assert(std.mem.eql(u8, node.kind(), "source_file"));
-    // std.debug.assert(node.endPoint().cmp(.{ .row = 0, .column = 22 }) == .eq);
+    while (true) : (buffer.clearRetainingCapacity()) {
+        _ = stdin.streamDelimiter(&buffer.writer, '\n') catch |err| switch (err) {
+            error.EndOfStream => return,
+            else => return err,
+        };
+        try buffer.writer.writeByte(try stdin.takeByte()); // consume the newline
+        const ast_ptr = parser.parseStringEncoding(
+            buffer.written(),
+            null,
+            root.ts.Input.Encoding.utf8,
+        ) orelse return;
+        defer ast_ptr.destroy();
 
-    // // Create a query and execute it
-    // var error_offset: u32 = 0;
-    // const query = try ts.Query.create(language, "name: (identifier) @name", &error_offset);
-    // defer query.destroy();
-
-    // const cursor = ts.QueryCursor.create();
-    // defer cursor.destroy();
-    // cursor.exec(query, node);
-
-    // // Get the captured node of the first match
-    // const match = cursor.nextMatch().?;
-    // const capture = match.captures[0].node;
-    // print("Captured node: {s}\n", .{capture.kind()});
-    // std.debug.assert(std.mem.eql(u8, capture.kind(), "identifier"));
+        const s_exp = try ast_ptr.rootNode().toSexp(allocator);
+        defer allocator.free(s_exp);
+        print("{s}\n", .{s_exp[1 .. s_exp.len - 1]});
+        try stdout.flush();
+    }
 }

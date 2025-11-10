@@ -2,6 +2,9 @@
  * @file The Sifu Programming Language Parser
  * @author Hugh Fox <hugh.s.fox@gmail.com>
  * @license Apache 2.0
+ * 
+ * Parses an AST that is converted to a single Pattern. The conversion
+ * algorithm assumes that all anonymous nodes have exactly one child. 
  */
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
@@ -11,7 +14,8 @@ module.exports = grammar({
   name: 'sifu',
 
   extras: $ => [
-    // /[ \t\r]/,  // Whitespace except newlines
+    /[ \t\r]/,  // Whitespace except newlines
+    // /\s/u,      // All whitespace including newlines
     $.comment,
   ],
 
@@ -23,7 +27,6 @@ module.exports = grammar({
     // ))),
 
     pattern: $ => seq(
-      repeat(/\s/),
       prec.right(0, repeat($._term)),
     ),
 
@@ -38,6 +41,7 @@ module.exports = grammar({
       $.symbol,
       $.comma_expr,
       $.semicolon_expr,
+      $.newline_expr,
       $.long_match,
       $.long_arrow,
       $.infix,
@@ -45,7 +49,7 @@ module.exports = grammar({
       $.short_arrow,
       $.nested_pattern,
       $.nested_trie,
-      $.quote,
+      // $.quote,
     ),
 
     // Unicode-aware identifiers
@@ -57,57 +61,57 @@ module.exports = grammar({
     symbol: $ => /[:!@$%^&*+-=|<>?\/\\~`\p{S}]+/u,
 
     // Nested structures
-    nested_pattern: $ => seq('(', repeat($.pattern), ')'),
-    nested_trie: $ => seq('{', repeat($.pattern), '}'),
+    nested_pattern: $ => seq('(', repeat($._term), ')'),
+    nested_trie: $ => seq('{', repeat($._term), '}'),
 
     // Quotes
-    quote: $ => seq('`', optional($.pattern), '`'),
+    quote: $ => seq('`', repeat($._term), '`'),
 
     // Operators (by precedence, lowest to highest)
     // Semicolon and newline - lowest precedence
     semicolon_expr: $ => prec.right(1, seq(
       ';',
-      optional($.pattern),
+      repeat($._term),
     )),
 
     // Add newline as semicolon equivalent, but only within nested structures
     newline_expr: $ => prec.right(1, seq(
       '\n',
-      optional($.pattern),
+      repeat($._term),
     )),
 
     // Long match and long arrow
     long_match: $ => prec.right(2, seq(
       '::',
-      optional($.pattern),
+      repeat($._term),
     )),
 
     long_arrow: $ => prec.right(2, seq(
       '-->',
-      optional($.pattern),
+      repeat($._term),
     )),
 
     // Comma - medium-low precedence
     comma_expr: $ => prec.right(3, seq(
       ',',
-      optional($.pattern),
+      repeat($._term),
     )),
 
     // Infix - medium precedence
     infix: $ => prec.right(4, seq(
       $.symbol,
-      optional($.pattern),
+      repeat($._term),
     )),
 
     // Short match and short arrow - highest precedence
     short_match: $ => prec.right(5, seq(
       ':',
-      optional($.pattern),
+      repeat($._term),
     )),
 
     short_arrow: $ => prec.right(5, seq(
       '->',
-      optional($.pattern),
+      repeat($._term),
     )),
   }
 });
