@@ -1,6 +1,14 @@
-tree-sitter-sifu/
-!tree-sitter-sifu/grammar.js
-!tree-sitter-sifu/src/tree-sitter.json
+tree-sitter-sifu/go.mod
+tree-sitter-sifu/pyproject.toml
+tree-sitter-sifu/log.html
+tree-sitter-sifu/CMakeLists.txt
+tree-sitter-sifu/Cargo.toml
+tree-sitter-sifu/.editorconfig
+tree-sitter-sifu/binding.gyp
+tree-sitter-sifu/Makefile
+tree-sitter-sifu/Package.swift
+tree-sitter-sifu/setup.py
+tree-sitter-sifu/package.json
 
 # Rust artifacts
 target/
