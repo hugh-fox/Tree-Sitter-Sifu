@@ -28,16 +28,24 @@ pub fn build(b: *std.Build) void {
     rename_so.setCwd(.{ .cwd_relative = "tree-sitter-sifu" });
     rename_so.step.dependOn(&tree_sitter_build.step);
 
+    const sleep = b.addSystemCommand(&.{
+        "sleep",
+        "1",
+    });
+    sleep.step.dependOn(&rename_so.step);
     // Create an install step to copy the library to the output directory
-    const install_lib = b.addInstallFile(
-        .{ .cwd_relative = "tree-sitter-sifu/libsifu.so" },
-        "lib/libsifu.so",
-    );
-    install_lib.step.dependOn(&rename_so.step);
+    // const install_lib = b.addInstallFile(
+    //     .{ .cwd_relative = "tree-sitter-sifu/libsifu.so" },
+    //     "lib/libsifu.so",
+    // );
+    // install_lib.step.dependOn(&rename_so.step);
 
     // Create a generate step that can be run manually
     const generate_step = b.step("generate", "Generate and build tree-sitter parser");
-    generate_step.dependOn(&install_lib.step);
+    generate_step.dependOn(&sleep.step);
+
+    // Make the default the generate step
+    b.getInstallStep().dependOn(generate_step);
 
     // Check if the library exists, if not, build it automatically
     // This helps when this package is used as a dependency
@@ -49,7 +57,7 @@ pub fn build(b: *std.Build) void {
 
     if (!lib_exists) {
         // Auto-generate on first build when used as dependency
-        b.getInstallStep().dependOn(&install_lib.step);
+        b.getInstallStep().dependOn(generate_step);
     }
 
     // Add the tree-sitter dependency
@@ -59,11 +67,12 @@ pub fn build(b: *std.Build) void {
     });
 
     // This creates a module for the tree-sitter parser
-    const module = b.addModule("tree_sitter_sifu", .{
+    const module = b.addModule("root", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
     });
     module.addImport("tree_sitter", tree_sitter.module("tree_sitter"));
+    module.linkSystemLibrary("sifu", .{});
 
     // Create an executable that uses this module
     module.addImport("tree_sitter", tree_sitter.module("tree_sitter"));
@@ -80,6 +89,7 @@ pub fn build(b: *std.Build) void {
             },
         }),
     });
+    exe.step.dependOn(generate_step);
 
     // Add tree-sitter import to executable as well
     // Add tree-sitter import to executable as well
@@ -87,7 +97,6 @@ pub fn build(b: *std.Build) void {
 
     // Link the executable against the generated library
     exe.addLibraryPath(.{ .cwd_relative = "tree-sitter-sifu" });
-    exe.linkSystemLibrary("sifu");
     exe.linkLibC();
 
     // Link the executable against the generated library
