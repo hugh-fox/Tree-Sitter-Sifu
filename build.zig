@@ -1,4 +1,5 @@
 const std = @import("std");
+const CSourceFile = std.Build.Module.CSourceFile;
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -11,42 +12,12 @@ pub fn build(b: *std.Build) void {
     });
     tree_sitter_generate.setCwd(.{ .cwd_relative = "tree-sitter-sifu" });
 
-    // Create a run step for tree-sitter build
-    const tree_sitter_build = b.addSystemCommand(&.{
-        "tree-sitter",
-        "build",
-    });
-    tree_sitter_build.setCwd(.{ .cwd_relative = "tree-sitter-sifu" });
-    tree_sitter_build.step.dependOn(&tree_sitter_generate.step);
-
-    // // Create a run step to rename the .so file
-    // const rename_so = b.addSystemCommand(&.{
-    //     "mv",
-    //     "sifu.so",
-    //     "libsifu.so",
-    // });
-    // rename_so.setCwd(.{ .cwd_relative = "tree-sitter-sifu" });
-    // rename_so.step.dependOn(&tree_sitter_build.step);
-
-    // Create a generate step that can be run manually
+    // Generate c source code
     const generate_step = b.step("generate", "Generate and build tree-sitter parser");
-    generate_step.dependOn(&tree_sitter_build.step);
+    generate_step.dependOn(&tree_sitter_generate.step);
 
     // Make the default the generate step
     b.getInstallStep().dependOn(generate_step);
-
-    const lib_path = "tree-sitter-sifu/sifu.so";
-    // Check if the library exists, if not, build it automatically
-    // This helps when this package is used as a dependency
-    const lib_exists = blk: {
-        std.fs.cwd().access(lib_path, .{}) catch break :blk false;
-        break :blk true;
-    };
-
-    if (!lib_exists) {
-        // Auto-generate on first build when used as dependency
-        b.getInstallStep().dependOn(generate_step);
-    }
 
     // Add the tree-sitter dependency
     const tree_sitter = b.dependency("tree_sitter", .{
@@ -59,16 +30,18 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/root.zig"),
         .target = target,
     });
-    module.addImport("tree_sitter", tree_sitter.module("tree_sitter"));
-    module.addLibraryPath(.{ .cwd_relative = b.lib_dir });
-    // Copy to zig-out
-    const sifu = b.addInstallLibFile(b.path(lib_path), "sifu.so");
-    sifu.step.dependOn(generate_step);
-    b.getInstallStep().dependOn(&sifu.step);
-    module.addObjectFile(.{ .cwd_relative = b.getInstallPath(.lib, sifu.dest_rel_path) });
-    module.link_libc = true;
 
-    // Create an executable that uses this module
+    // Add the generated parser file
+    module.addCSourceFile(.{
+        .file = b.path("tree-sitter-sifu/src/parser.c"),
+        .flags = &.{
+            "-std=c99",
+        },
+    });
+    module.addIncludePath(b.path("tree-sitter-sifu/src"));
+    module.link_libc = true;
+    module.addImport("tree_sitter", tree_sitter.module("tree_sitter"));
+
     const exe = b.addExecutable(.{
         .name = "exe",
         .root_module = b.createModule(.{
@@ -80,16 +53,10 @@ pub fn build(b: *std.Build) void {
             },
         }),
     });
-    exe.step.dependOn(generate_step);
+
     // Add tree-sitter import to executable as well
     exe.root_module.addImport("tree_sitter", tree_sitter.module("tree_sitter"));
 
-    exe.root_module.link_libc = true;
-
-    // Link the executable against the generated library
-    // std.debug.print("{s}\n", .{exe.installed_path orelse ""});
-    // std.debug.print("{}\n", .{module.lib_paths});
-    // exe.root_module.addObjectFile(b.path("tree-sitter-sifu/sifu.so"));
     // Install the executable
     b.installArtifact(exe);
 
@@ -117,15 +84,4 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
-
-    // Optional: Add a clean step to remove generated files
-    const clean_step = b.step("clean", "Clean generated tree-sitter files");
-    const clean_cmd = b.addSystemCommand(&.{
-        "rm",
-        "-f",
-        "sifu.so",
-        "libsifu.so",
-    });
-    clean_cmd.setCwd(.{ .cwd_relative = "tree-sitter-sifu" });
-    clean_step.dependOn(&clean_cmd.step);
 }
