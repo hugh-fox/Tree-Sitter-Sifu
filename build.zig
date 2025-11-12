@@ -19,33 +19,26 @@ pub fn build(b: *std.Build) void {
     tree_sitter_build.setCwd(.{ .cwd_relative = "tree-sitter-sifu" });
     tree_sitter_build.step.dependOn(&tree_sitter_generate.step);
 
-    // Create a run step to rename the .so file
-    const rename_so = b.addSystemCommand(&.{
-        "mv",
-        "sifu.so",
-        "libsifu.so",
-    });
-    rename_so.setCwd(.{ .cwd_relative = "tree-sitter-sifu" });
-    rename_so.step.dependOn(&tree_sitter_build.step);
-
-    // Create an install step to copy the library to the output directory
-    // const install_lib = b.addInstallFile(
-    //     .{ .cwd_relative = "tree-sitter-sifu/libsifu.so" },
-    //     "lib/libsifu.so",
-    // );
-    // install_lib.step.dependOn(&rename_so.step);
+    // // Create a run step to rename the .so file
+    // const rename_so = b.addSystemCommand(&.{
+    //     "mv",
+    //     "sifu.so",
+    //     "libsifu.so",
+    // });
+    // rename_so.setCwd(.{ .cwd_relative = "tree-sitter-sifu" });
+    // rename_so.step.dependOn(&tree_sitter_build.step);
 
     // Create a generate step that can be run manually
     const generate_step = b.step("generate", "Generate and build tree-sitter parser");
-    generate_step.dependOn(&rename_so.step);
+    generate_step.dependOn(&tree_sitter_build.step);
 
     // Make the default the generate step
     b.getInstallStep().dependOn(generate_step);
 
+    const lib_path = "tree-sitter-sifu/sifu.so";
     // Check if the library exists, if not, build it automatically
     // This helps when this package is used as a dependency
     const lib_exists = blk: {
-        const lib_path = "tree-sitter-sifu/libsifu.so";
         std.fs.cwd().access(lib_path, .{}) catch break :blk false;
         break :blk true;
     };
@@ -62,19 +55,22 @@ pub fn build(b: *std.Build) void {
     });
 
     // This creates a module for the tree-sitter parser
-    const module = b.addModule("root", .{
+    const module = b.addModule("tree_sitter_sifu", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
     });
     module.addImport("tree_sitter", tree_sitter.module("tree_sitter"));
-    module.linkSystemLibrary("sifu", .{});
-
-    // Create an executable that uses this module
-    module.addImport("tree_sitter", tree_sitter.module("tree_sitter"));
+    module.addLibraryPath(.{ .cwd_relative = b.lib_dir });
+    // Copy to zig-out
+    const sifu = b.addInstallLibFile(b.path(lib_path), "sifu.so");
+    sifu.step.dependOn(generate_step);
+    b.getInstallStep().dependOn(&sifu.step);
+    module.addObjectFile(.{ .cwd_relative = b.getInstallPath(.lib, sifu.dest_rel_path) });
+    module.link_libc = true;
 
     // Create an executable that uses this module
     const exe = b.addExecutable(.{
-        .name = "tree_sitter_sifu",
+        .name = "exe",
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),
             .target = target,
@@ -85,25 +81,18 @@ pub fn build(b: *std.Build) void {
         }),
     });
     exe.step.dependOn(generate_step);
-
-    // Add tree-sitter import to executable as well
     // Add tree-sitter import to executable as well
     exe.root_module.addImport("tree_sitter", tree_sitter.module("tree_sitter"));
 
-    // Link the executable against the generated library
-    exe.addLibraryPath(.{ .cwd_relative = "tree-sitter-sifu" });
-    exe.linkLibC();
+    exe.root_module.link_libc = true;
 
     // Link the executable against the generated library
-    exe.addLibraryPath(.{ .cwd_relative = "tree-sitter-sifu" });
-    exe.linkSystemLibrary("sifu");
-    exe.linkLibC();
-
-    // Install the executable
+    // std.debug.print("{s}\n", .{exe.installed_path orelse ""});
+    // std.debug.print("{}\n", .{module.lib_paths});
+    // exe.root_module.addObjectFile(b.path("tree-sitter-sifu/sifu.so"));
     // Install the executable
     b.installArtifact(exe);
 
-    // Create run step
     // Create run step
     const run_step = b.step("run", "Run the app");
     const run_cmd = b.addRunArtifact(exe);
@@ -114,7 +103,6 @@ pub fn build(b: *std.Build) void {
         run_cmd.addArgs(args);
     }
 
-    // Create test steps
     // Create test steps
     const mod_tests = b.addTest(.{
         .root_module = module,

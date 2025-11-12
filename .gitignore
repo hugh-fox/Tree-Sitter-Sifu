@@ -11,6 +11,7 @@ tree-sitter-sifu/setup.py
 tree-sitter-sifu/package.json
 tree-sitter-sifu/src
 
+
 # Rust artifacts
 target/
 Cargo.lock
