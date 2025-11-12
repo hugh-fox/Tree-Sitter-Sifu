@@ -5,25 +5,33 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // Create a run step for tree-sitter generate
-    const tree_sitter_generate = b.addSystemCommand(&.{
-        "tree-sitter",
-        "generate",
-    });
-    tree_sitter_generate.setCwd(.{ .cwd_relative = "tree-sitter-sifu" });
-
-    // Generate c source code
-    const generate_step = b.step("generate", "Generate and build tree-sitter parser");
-    generate_step.dependOn(&tree_sitter_generate.step);
-
-    // Make the default the generate step
-    b.getInstallStep().dependOn(generate_step);
-
     // Add the tree-sitter dependency
     const tree_sitter = b.dependency("tree_sitter", .{
         .target = target,
         .optimize = optimize,
     });
+
+    // Create WriteFiles step to capture generated files
+    const wf = b.addWriteFiles();
+
+    // Create a run step for tree-sitter generate that outputs to the generated directory
+    const tree_sitter_generate = b.addSystemCommand(&.{
+        "tree-sitter",
+        "generate",
+    });
+    tree_sitter_generate.setCwd(b.path("tree-sitter-sifu"));
+
+    // Copy the generated parser.c file to the build directory
+    const parser_c = wf.addCopyFile(
+        b.path("tree-sitter-sifu/src/parser.c"),
+        "parser.c",
+    );
+
+    // Generate c source code
+    const generate_step = b.step("generate", "Generate and build tree-sitter parser");
+    generate_step.dependOn(&tree_sitter_generate.step);
+    b.getInstallStep().dependOn(generate_step);
+    wf.step.dependOn(generate_step);
 
     // This creates a module for the tree-sitter parser
     const module = b.addModule("tree_sitter_sifu", .{
@@ -31,9 +39,9 @@ pub fn build(b: *std.Build) void {
         .target = target,
     });
 
-    // Add the generated parser file
+    // Add the generated parser file from the build directory
     module.addCSourceFile(.{
-        .file = b.path("tree-sitter-sifu/src/parser.c"),
+        .file = parser_c,
         .flags = &.{
             "-std=c99",
         },
