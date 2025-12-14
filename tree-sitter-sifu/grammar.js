@@ -2,116 +2,208 @@
  * @file The Sifu Programming Language Parser
  * @author Hugh Fox <hugh.s.fox@gmail.com>
  * @license Apache 2.0
- * 
+ *
  * Parses an AST that is converted to a single Pattern. The conversion
- * algorithm assumes that all anonymous nodes have exactly one child. 
+ * algorithm assumes that all anonymous nodes have exactly one child.
  */
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
-// Disable TypeScript checking for this file
 // @ts-nocheck
 module.exports = grammar({
-  name: 'sifu',
+  name: "sifu",
 
-  extras: $ => [
-    /[ \t\r]/,  // Whitespace except newlines
-    // /\s/u,      // All whitespace including newlines
+  extras: ($) => [
+    /[\s]/,
+    // /[ \t\r]/, // Whitespace except newlines
     $.comment,
   ],
 
   rules: {
-    // Top-level pattern: sequence of terms separated by newlines
-    // source_file: $ => repeat(choice('\n', seq(
-    //   $.pattern,
-    //   optional(prec.right(6, '\n')),
-    // ))),
-
-    pattern: $ => seq(
-      prec.right(0, repeat($._term)),
+    pattern: ($) => prec.right(1,
+      optional(optional($._op))
     ),
 
     // Comments
-    comment: $ => token(seq('#', /.*/)),
+    comment: ($) => token(
+      seq(
+        "#",
+        /.*/
+      )
+    ),
 
-    _term: $ => choice(
-      $.key,
-      $.var,
-      $.number,
-      $.string,
+    // Precedence level 0: Semicolon (lowest)
+    semicolon: ($) => prec.right(1, seq(
+      optional($._non_semicolon),
+      ";",
+      optional(choice(
+        $.semicolon,
+        $.long_match,
+        $.long_arrow,
+        $.comma,
+        $.infix,
+        $.match,
+        $.arrow,
+        $._apps,
+      )),
+    )),
+
+    // Precedence level 1: Long match and long arrow
+    long_match: ($) => prec.right(2, seq(
+      optional($._non_long),
+      "::",
+      optional(choice(
+        $.long_match,
+        $.long_arrow,
+        $.comma,
+        $.infix,
+        $.match,
+        $.arrow,
+        $._apps,
+      )),
+    )),
+    long_arrow: ($) => prec.right(2, seq(
+      optional($._non_long),
+      "-->",
+      optional(choice(
+        $.long_match,
+        $.long_arrow,
+        $.comma,
+        $.infix,
+        $.match,
+        $.arrow,
+        $._apps,
+      )),
+    )),
+
+    // Precedence level 2: Comma
+    comma: ($) => prec.right(3, seq(
+      optional($._non_comma),
+      ",",
+      optional(choice(
+        $.comma,
+        $.infix,
+        $.match,
+        $.arrow,
+        $._apps,
+      )),
+    )),
+
+    // Precedence level 3: Infix (custom operators)
+    infix: ($) => prec.right(4, seq(
+      optional($._non_infix),
       $.symbol,
-      $.comma_expr,
-      $.semicolon_expr,
-      $.newline_expr,
+      optional(choice(
+        $.infix,
+        $.match,
+        $.arrow,
+        $._apps,
+      )),
+    )),
+
+    // Precedence level 4: Short match and short arrow (highest)
+    match: ($) => prec.right(5, seq(
+      optional($._non_short),
+      ":",
+      optional(choice(
+        $.match,
+        $.arrow,
+        $._apps,
+      )),
+    )),
+    arrow: ($) => prec.right(5, seq(
+      optional($._non_short),
+      "->",
+      optional(choice(
+        $.match,
+        $.arrow,
+        $._apps,
+      )),
+    )),
+
+    // Helper rules to prevent certain operators at each level
+    _non_semicolon: ($) => choice(
       $.long_match,
       $.long_arrow,
+      $.comma,
       $.infix,
-      $.short_match,
-      $.short_arrow,
+      $.match,
+      $.arrow,
+      $._apps
+    ),
+
+    _non_long: ($) => choice(
+      $.comma,
+      $.infix,
+      $.match,
+      $.arrow,
+      $._apps
+    ),
+
+    _non_comma: ($) => choice(
+      $.infix,
+      $.match,
+      $.arrow,
+      $._apps
+    ),
+
+    _non_infix: ($) => choice(
+      $.match,
+      $.arrow,
+      $._apps
+    ),
+
+    _non_short: ($) => $._apps,
+
+    _apps: ($) => prec.right(8, repeat1(
+      $._term
+    )),
+
+    _term: ($) => choice(
+      $.key,
+      $.variable,
+      $.number,
+      $.string,
       $.nested_pattern,
       $.nested_trie,
-      // $.quote,
+      $.quote,
     ),
 
     // Unicode-aware identifiers
-    key: $ => /\p{Lu}[\p{L}\p{N}_]*/u,
-    var: $ => /\p{Ll}[\p{L}\p{N}_]*/u,
-    number: $ => /[0-9]+(\.[0-9]+)?/,
-    string: $ => /"([^"\\]|\\.)*"/,
+    key: ($) => /\p{Lu}[\p{L}\p{N}_-]*/u,
+    variable: ($) => /\p{Ll}[\p{L}\p{N}_-]*/u,
+    number: ($) => /[0-9]+(\.[0-9]+)?/,
+    string: ($) => /"([^"\\]|\\.)*"/,
     // Unicode-aware symbols (excluding reserved characters)
-    symbol: $ => /[:!@$%^&*+-=|<>?\/\\~`\p{S}]+/u,
+    symbol: ($) => /[:!@$%^&*+-=|<>?\/\\~`\p{S}]+/u,
+
+    _op: ($) => choice(
+      $.semicolon,
+      $.long_match,
+      $.long_arrow,
+      $.comma,
+      $.infix,
+      $.match,
+      $.arrow,
+      $._apps
+    ),
 
     // Nested structures
-    nested_pattern: $ => seq('(', repeat($._term), ')'),
-    nested_trie: $ => seq('{', repeat($._term), '}'),
+    nested_pattern: ($) => prec.right(6, seq(
+      "(",
+      optional($._op),
+      ")"
+    )),
+    nested_trie: ($) => prec.right(6, seq(
+      "{",
+      optional($._op),
+      "}"
+    )),
 
     // Quotes
-    quote: $ => seq('`', repeat($._term), '`'),
-
-    // Operators (by precedence, lowest to highest)
-    // Semicolon and newline - lowest precedence
-    semicolon_expr: $ => prec.right(1, seq(
-      ';',
-      repeat($._term),
+    quote: ($) => prec.right(5, seq(
+      "`",
+      optional($._op),
+      "`"
     )),
-
-    // Add newline as semicolon equivalent, but only within nested structures
-    newline_expr: $ => prec.right(1, seq(
-      '\n',
-      repeat($._term),
-    )),
-
-    // Long match and long arrow
-    long_match: $ => prec.right(2, seq(
-      '::',
-      repeat($._term),
-    )),
-
-    long_arrow: $ => prec.right(2, seq(
-      '-->',
-      repeat($._term),
-    )),
-
-    // Comma - medium-low precedence
-    comma_expr: $ => prec.right(3, seq(
-      ',',
-      repeat($._term),
-    )),
-
-    // Infix - medium precedence
-    infix: $ => prec.right(4, seq(
-      $.symbol,
-      repeat($._term),
-    )),
-
-    // Short match and short arrow - highest precedence
-    short_match: $ => prec.right(5, seq(
-      ':',
-      repeat($._term),
-    )),
-
-    short_arrow: $ => prec.right(5, seq(
-      '->',
-      repeat($._term),
-    )),
-  }
+  },
 });
