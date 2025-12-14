@@ -19,11 +19,8 @@ module.exports = grammar({
   ],
 
   rules: {
-    pattern: ($) => prec.right(1,
-      optional(optional($._op))
-    ),
+    pattern: ($) => optional($._op),
 
-    // Comments
     comment: ($) => token(
       seq(
         "#",
@@ -31,11 +28,10 @@ module.exports = grammar({
       )
     ),
 
-    // Precedence level 0: Semicolon (lowest)
     semicolon: ($) => prec.right(1, seq(
-      optional($._non_semicolon),
+      field("lhs", optional($._non_semicolon)),
       ";",
-      optional(choice(
+      field("rhs", optional(choice(
         $.semicolon,
         $.long_match,
         $.long_arrow,
@@ -43,84 +39,79 @@ module.exports = grammar({
         $.infix,
         $.match,
         $.arrow,
-        $._apps,
-      )),
+        $.apps,
+      ))),
     )),
 
-    // Precedence level 1: Long match and long arrow
     long_match: ($) => prec.right(2, seq(
-      optional($._non_long),
+      field("lhs", optional($._non_long)),
       "::",
-      optional(choice(
+      field("rhs", optional(choice(
         $.long_match,
         $.long_arrow,
         $.comma,
         $.infix,
         $.match,
         $.arrow,
-        $._apps,
-      )),
+        $.apps,
+      ))),
     )),
     long_arrow: ($) => prec.right(2, seq(
-      optional($._non_long),
+      field("lhs", optional($._non_long)),
       "-->",
-      optional(choice(
+      field("rhs", optional(choice(
         $.long_match,
         $.long_arrow,
         $.comma,
         $.infix,
         $.match,
         $.arrow,
-        $._apps,
-      )),
+        $.apps,
+      ))),
     )),
 
-    // Precedence level 2: Comma
     comma: ($) => prec.right(3, seq(
-      optional($._non_comma),
+      field("lhs", optional($._non_comma)),
       ",",
-      optional(choice(
+      field("rhs", optional(choice(
         $.comma,
         $.infix,
         $.match,
         $.arrow,
-        $._apps,
-      )),
+        $.apps,
+      ))),
     )),
 
-    // Precedence level 3: Infix (custom operators)
     infix: ($) => prec.right(4, seq(
-      optional($._non_infix),
-      $.symbol,
-      optional(choice(
+      field("lhs", optional($._non_infix)),
+      field("op", $.symbol),
+      field("rhs", optional(choice(
         $.infix,
         $.match,
         $.arrow,
-        $._apps,
-      )),
+        $.apps,
+      ))),
     )),
 
-    // Precedence level 4: Short match and short arrow (highest)
     match: ($) => prec.right(5, seq(
-      optional($._non_short),
+      field("lhs", optional($._non_short)),
       ":",
-      optional(choice(
+      field("rhs", optional(choice(
         $.match,
         $.arrow,
-        $._apps,
-      )),
+        $.apps,
+      ))),
     )),
     arrow: ($) => prec.right(5, seq(
-      optional($._non_short),
+      field("lhs", optional($._non_short)),
       "->",
-      optional(choice(
+      field("rhs", optional(choice(
         $.match,
         $.arrow,
-        $._apps,
-      )),
+        $.apps,
+      ))),
     )),
 
-    // Helper rules to prevent certain operators at each level
     _non_semicolon: ($) => choice(
       $.long_match,
       $.long_arrow,
@@ -128,7 +119,7 @@ module.exports = grammar({
       $.infix,
       $.match,
       $.arrow,
-      $._apps
+      $.apps
     ),
 
     _non_long: ($) => choice(
@@ -136,25 +127,25 @@ module.exports = grammar({
       $.infix,
       $.match,
       $.arrow,
-      $._apps
+      $.apps
     ),
 
     _non_comma: ($) => choice(
       $.infix,
       $.match,
       $.arrow,
-      $._apps
+      $.apps
     ),
 
     _non_infix: ($) => choice(
       $.match,
       $.arrow,
-      $._apps
+      $.apps
     ),
 
-    _non_short: ($) => $._apps,
+    _non_short: ($) => $.apps,
 
-    _apps: ($) => prec.right(8, repeat1(
+    apps: ($) => prec.right(8, repeat1(
       $._term
     )),
 
@@ -184,7 +175,7 @@ module.exports = grammar({
       $.infix,
       $.match,
       $.arrow,
-      $._apps
+      $.apps
     ),
 
     // Nested structures
@@ -199,7 +190,6 @@ module.exports = grammar({
       "}"
     )),
 
-    // Quotes
     quote: ($) => prec.right(5, seq(
       "`",
       optional($._op),
