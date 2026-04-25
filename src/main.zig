@@ -1,16 +1,18 @@
 const std = @import("std");
-const io = std.io;
 const fs = std.fs;
+const Io = std.Io;
 const print = std.debug.print;
 const root = @import("root.zig");
 const panic = std.debug.panic;
 const allocator = std.heap.page_allocator;
 
-pub fn main() !void {
+pub fn main(init: std.process.Init) !void {
+    const io = init.io;
+
     var stdin_buffer: [1024]u8 = undefined;
-    var stdin_reader = fs.File.stdin().reader(&stdin_buffer);
+    var stdin_reader = Io.File.stdin().reader(io, &stdin_buffer);
     var stdout_buffer: [1024]u8 = undefined;
-    var stdout_writer = fs.File.stdout().writer(&stdout_buffer);
+    var stdout_writer = Io.File.stdout().writer(io, &stdout_buffer);
     const stdin = &stdin_reader.interface;
     const stdout = &stdout_writer.interface;
 

@@ -30,7 +30,7 @@ module.exports = grammar({
       $.infix,
       $.match,
       $.arrow,
-      $._terms
+      $.terms
     ),
 
     semicolon: ($) => prec.right(1, seq(
@@ -75,7 +75,7 @@ module.exports = grammar({
       field("rhs", optional($._op)),
     )),
 
-    _terms: ($) => prec.right(6, repeat1(
+    terms: ($) => prec.right(6, repeat1(
       $._term
     )),
 
@@ -92,13 +92,13 @@ module.exports = grammar({
     // Nested structures
     nested_pattern: ($) => prec.right(6, seq(
       "(",
-      optional($._op),
+      field("inner", optional($._op)),
       ")"
     )),
 
     nested_trie: ($) => prec.right(6, seq(
       "{",
-      optional($._op),
+      field("inner", optional($._op)),
       "}"
     )),
 

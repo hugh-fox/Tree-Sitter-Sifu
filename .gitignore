@@ -49,6 +49,8 @@ dist/
 .zig-cache/
 zig-cache/
 zig-out/
+# Zig packages
+zig-pkg
 
 # Example dirs
 /examples/*/
