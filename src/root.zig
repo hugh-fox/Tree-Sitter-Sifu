@@ -1,8 +1,8 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const io = std.io;
-const Reader = io.Reader;
-const Writer = io.Writer;
+const Io = std.Io;
+const Reader = Io.Reader;
+const Writer = Io.Writer;
 pub const ts = @import("tree_sitter");
 pub const Tree = ts.Tree;
 pub const Node = ts.Node;
