@@ -82,6 +82,7 @@ module.exports = grammar({
     _term: ($) => choice(
       $.key,
       $.variable,
+      $.var_pattern,
       $.number,
       $.string,
       $.nested_pattern,
@@ -111,6 +112,7 @@ module.exports = grammar({
     // Unicode-aware identifiers
     key: ($) => /\p{Lu}[\p{L}\p{N}_-]*/u,
     variable: ($) => /\p{Ll}[\p{L}\p{N}_-]*/u,
+    var_pattern: ($) => /\*\p{Ll}[\p{L}\p{N}_-]*/u,
     number: ($) => /[0-9]+(\.[0-9]+)?/,
     string: ($) => /"([^"\\]|\\.)*"/,
     // Unicode-aware symbols (excluding reserved characters)
