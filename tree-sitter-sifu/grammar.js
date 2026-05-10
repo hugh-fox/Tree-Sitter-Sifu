@@ -5,6 +5,9 @@
  *
  * Parses an AST that is converted to a single Pattern. The conversion
  * algorithm assumes that all anonymous nodes have exactly one child.
+ * 
+ * Field names are used verbatim during ast conversion, so make sure to
+ * update them if changed in ast.zig.
  *
  * Operator precedence (lowest to highest):
  *   1. semicolon  ;
@@ -35,10 +38,10 @@ module.exports = grammar({
       $._prec2,
     ),
 
-    semicolon: ($) => prec.right(1, seq(
-      field("lhs", optional($._prec1)),
+    semicolon: ($) => prec.left(1, seq(
+      field("lhs", optional($._prec2)),
       ";",
-      field("rhs", optional($._prec2)),
+      field("rhs", optional($._prec1)),
     )),
 
     // Prec 2: long_match, long_arrow
@@ -48,16 +51,16 @@ module.exports = grammar({
       $._prec3,
     ),
 
-    long_match: ($) => prec.right(2, seq(
-      field("lhs", optional($._prec2)),
+    long_match: ($) => prec.left(2, seq(
+      field("lhs", optional($._prec3)),
       "::",
-      field("rhs", optional($._prec3)),
+      field("rhs", optional($._prec2)),
     )),
 
-    long_arrow: ($) => prec.right(2, seq(
-      field("lhs", optional($._prec2)),
+    long_arrow: ($) => prec.left(2, seq(
+      field("lhs", optional($._prec3)),
       "-->",
-      field("rhs", optional($._prec3)),
+      field("rhs", optional($._prec2)),
     )),
 
     // Prec 3: comma
@@ -66,10 +69,10 @@ module.exports = grammar({
       $._prec4,
     ),
 
-    comma: ($) => prec.right(3, seq(
-      field("lhs", optional($._prec3)),
+    comma: ($) => prec.left(3, seq(
+      field("lhs", optional($._prec4)),
       ",",
-      field("rhs", optional($._prec4)),
+      field("rhs", optional($._prec3)),
     )),
 
     // Prec 4: infix (user-defined symbol)
@@ -78,10 +81,10 @@ module.exports = grammar({
       $._prec5,
     ),
 
-    infix: ($) => prec.right(4, seq(
-      field("lhs", optional($._prec4)),
+    infix: ($) => prec.left(4, seq(
+      field("lhs", optional($._prec5)),
       field("op", $.symbol),
-      field("rhs", optional($._prec5)),
+      field("rhs", optional($._prec4)),
     )),
 
     // Prec 5: match, arrow
@@ -91,22 +94,22 @@ module.exports = grammar({
       $._prec6,
     ),
 
-    match: ($) => prec.right(5, seq(
-      field("lhs", optional($._prec5)),
+    match: ($) => prec.left(5, seq(
+      field("lhs", optional($._prec6)),
       ":",
-      field("rhs", optional($._prec6)),
+      field("rhs", optional($._prec5)),
     )),
 
-    arrow: ($) => prec.right(5, seq(
-      field("lhs", optional($._prec5)),
+    arrow: ($) => prec.left(5, seq(
+      field("lhs", optional($._prec6)),
       "->",
-      field("rhs", optional($._prec6)),
+      field("rhs", optional($._prec5)),
     )),
 
     // Prec 6: juxtaposition (terms)
     _prec6: ($) => $.terms,
 
-    terms: ($) => prec.right(6, repeat1($._term)),
+    terms: ($) => prec.left(6, repeat1($._term)),
 
     _term: ($) => choice(
       $.key,
@@ -131,7 +134,7 @@ module.exports = grammar({
       "}"
     ),
 
-    quote: ($) => prec.right(5, seq(
+    quote: ($) => prec.left(5, seq(
       "`",
       field("inner", optional($._prec1)),
       "`"
