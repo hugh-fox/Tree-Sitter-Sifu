@@ -140,10 +140,16 @@ module.exports = grammar({
       "`"
     )),
 
+    char_trie: ($) => seq(
+      "#{",
+      field("inner", optional($._prec1)),
+      "}#"
+    ),
+    
     // Terminals
-    key: ($) => /\p{Lu}[\p{L}\p{N}_-]*/u,
-    variable: ($) => /\p{Ll}[\p{L}\p{N}_-]*/u,
-    var_pattern: ($) => /\*\p{Ll}[\p{L}\p{N}_-]*/u,
+    key: ($) => /_*\p{Lu}[\p{L}\p{N}_]*|_/u,
+    variable: ($) => /_*\p{Ll}[\p{L}\p{N}_]*/u,
+    var_pattern: ($) => /_*\*\p{Ll}[\p{L}\p{N}_]*/u,
     number: ($) => /[0-9]+(\.[0-9]+)?/,
     string: ($) => /"([^"\\]|\\.)*"/,
 
