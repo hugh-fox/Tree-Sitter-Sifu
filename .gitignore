@@ -9,7 +9,6 @@ tree-sitter-sifu/Makefile
 tree-sitter-sifu/Package.swift
 tree-sitter-sifu/setup.py
 tree-sitter-sifu/package.json
-tree-sitter-sifu/src
 tree-sitter-sifu/bindings
 
 
