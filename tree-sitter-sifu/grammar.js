@@ -152,6 +152,7 @@ module.exports = grammar({
                 $.string,
                 $.nested_pattern,
                 $.nested_trie,
+                $.char_trie,
                 $.quote,
             ),
 

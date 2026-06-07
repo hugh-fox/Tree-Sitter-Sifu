@@ -598,6 +598,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "char_trie"
+        },
+        {
+          "type": "SYMBOL",
           "name": "quote"
         }
       ]

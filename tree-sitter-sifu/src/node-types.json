@@ -44,6 +44,54 @@
     }
   },
   {
+    "type": "char_trie",
+    "named": true,
+    "fields": {
+      "inner": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "arrow",
+            "named": true
+          },
+          {
+            "type": "comma",
+            "named": true
+          },
+          {
+            "type": "infix",
+            "named": true
+          },
+          {
+            "type": "long_arrow",
+            "named": true
+          },
+          {
+            "type": "long_match",
+            "named": true
+          },
+          {
+            "type": "match",
+            "named": true
+          },
+          {
+            "type": "newline_sep",
+            "named": true
+          },
+          {
+            "type": "semicolon",
+            "named": true
+          },
+          {
+            "type": "terms",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "comma",
     "named": true,
     "fields": {
@@ -732,6 +780,10 @@
       "multiple": true,
       "required": true,
       "types": [
+        {
+          "type": "char_trie",
+          "named": true
+        },
         {
           "type": "key",
           "named": true
