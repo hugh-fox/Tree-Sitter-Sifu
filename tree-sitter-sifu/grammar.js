@@ -9,19 +9,29 @@
  * Field names are used verbatim during ast conversion, so make sure to
  * update them if changed in ast.zig.
  *
+ * The structure mirrors the recursive-descent reference parser in Sifu's
+ * `src/Parser.zig`. The two must agree node-for-node, since the `Parsable`
+ * tests compare their outputs. Notable points of agreement:
+ *
+ *   - Separators are RIGHT associative (`a ; b ; c` nests as `a ; (b ; c)`),
+ *     except `infix`, which is LEFT associative. This matches the reference
+ *     parser's recursion.
+ *   - Newlines carry semantic meaning and are NOT extras. A flush newline run
+ *     (ending on a newline) is a `newline` separator at the semicolon level; a
+ *     run that ends in indentation is an `indent` separator at the comma level.
+ *     The whole whitespace run is the token text so the printer reproduces the
+ *     exact layout.
+ *   - Comments are ordinary terms (kept in the tree), not extras.
+ *   - Double- and single-quoted strings are distinct tokens. The AST
+ *     conversion decomposes each into its individual characters.
+ *
  * Operator precedence (lowest to highest):
- *   1. semicolon  ; / newline \n
+ *   1. semicolon  ; / newline
  *   2. long_match ::  /  long_arrow -->
- *   3. comma      ,
+ *   3. comma      ,  / indent
  *   4. infix      <symbol>
  *   5. match      :   /  arrow      ->
  *   6. terms      (juxtaposition)
- *
- * Multi-line patterns:
- *   - Newlines act as separators (like semicolons but distinct)
- *   - Trailing operators (before newline) continue on the next line
- *   - Only one newline is consumed for continuation; a second newline separates
- *   - Semicolons and newlines are distinct tokens for pretty-print isomorphism
  */
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
@@ -29,8 +39,10 @@
 module.exports = grammar({
     name: "sifu",
 
-    // Newlines are NOT in extras - they have semantic meaning
-    extras: ($) => [/[ \t\r]/, $.comment],
+    // Newlines are NOT in extras - they have semantic meaning. Comments are
+    // ordinary terms, also not extras, so they round-trip like the reference
+    // parser keeps them.
+    extras: ($) => [/[ \t\r]/],
 
     rules: {
         pattern: ($) => optional($._prec1),
@@ -40,7 +52,7 @@ module.exports = grammar({
 
         // Semicolon separator - distinct from newline for pretty-print isomorphism
         semicolon: ($) =>
-            prec.left(
+            prec.right(
                 1,
                 seq(
                     field("lhs", optional($._prec2)),
@@ -49,13 +61,14 @@ module.exports = grammar({
                 ),
             ),
 
-        // Newline as separator - distinct from semicolon
+        // Flush newline separator - distinct from semicolon. Carries its literal
+        // whitespace via the named `newline` child.
         newline_sep: ($) =>
-            prec.left(
+            prec.right(
                 1,
                 seq(
                     field("lhs", optional($._prec2)),
-                    "\n",
+                    $.newline,
                     field("rhs", optional($._prec1)),
                 ),
             ),
@@ -64,42 +77,51 @@ module.exports = grammar({
         _prec2: ($) => choice($.long_match, $.long_arrow, $._prec3),
 
         long_match: ($) =>
-            prec.left(
+            prec.right(
                 2,
                 seq(
                     field("lhs", optional($._prec3)),
                     "::",
-                    field("trailing", optional("\n")),
                     field("rhs", optional($._prec2)),
                 ),
             ),
 
         long_arrow: ($) =>
-            prec.left(
+            prec.right(
                 2,
                 seq(
                     field("lhs", optional($._prec3)),
                     "-->",
-                    field("trailing", optional("\n")),
                     field("rhs", optional($._prec2)),
                 ),
             ),
 
-        // Prec 3: comma
-        _prec3: ($) => choice($.comma, $._prec4),
+        // Prec 3: comma, indent
+        _prec3: ($) => choice($.comma, $.indent_group, $._prec4),
 
         comma: ($) =>
-            prec.left(
+            prec.right(
                 3,
                 seq(
                     field("lhs", optional($._prec4)),
                     ",",
-                    field("trailing", optional("\n")),
                     field("rhs", optional($._prec3)),
                 ),
             ),
 
-        // Prec 4: infix (user-defined symbol)
+        // Indentation-grouped separator - like comma but carries the literal
+        // newline + indentation whitespace via the named `indent` child.
+        indent_group: ($) =>
+            prec.right(
+                3,
+                seq(
+                    field("lhs", optional($._prec4)),
+                    $.indent,
+                    field("rhs", optional($._prec3)),
+                ),
+            ),
+
+        // Prec 4: infix (user-defined symbol), left associative
         _prec4: ($) => choice($.infix, $._prec5),
 
         infix: ($) =>
@@ -108,7 +130,6 @@ module.exports = grammar({
                 seq(
                     field("lhs", optional($._prec5)),
                     field("op", $.symbol),
-                    field("trailing", optional("\n")),
                     field("rhs", optional($._prec4)),
                 ),
             ),
@@ -117,23 +138,21 @@ module.exports = grammar({
         _prec5: ($) => choice($.match, $.arrow, $._prec6),
 
         match: ($) =>
-            prec.left(
+            prec.right(
                 5,
                 seq(
                     field("lhs", optional($._prec6)),
                     ":",
-                    field("trailing", optional("\n")),
                     field("rhs", optional($._prec5)),
                 ),
             ),
 
         arrow: ($) =>
-            prec.left(
+            prec.right(
                 5,
                 seq(
                     field("lhs", optional($._prec6)),
                     "->",
-                    field("trailing", optional("\n")),
                     field("rhs", optional($._prec5)),
                 ),
             ),
@@ -146,13 +165,16 @@ module.exports = grammar({
         _term: ($) =>
             choice(
                 $.key,
+                $.constant,
                 $.variable,
                 $.var_pattern,
                 $.number,
                 $.string,
+                $.single_string,
                 $.nested_pattern,
                 $.nested_trie,
                 $.quote,
+                $.comment,
             ),
 
         nested_pattern: ($) =>
@@ -163,20 +185,41 @@ module.exports = grammar({
         quote: ($) =>
             prec.left(5, seq("`", field("inner", optional($._prec1)), "`")),
 
-        char_trie: ($) => seq("#{", field("inner", optional($._prec1)), "}#"),
+        // Whitespace separators. A flush `newline` run ends on a newline; an
+        // `indent` run ends in indentation (the next line is indented). Both
+        // start on a newline so plain inline spaces stay extras. The longest
+        // match wins, mirroring the reference lexer's single whitespace run.
+        newline: ($) => token(/\n([ \t\r]*\n)*/),
+        indent: ($) => token(/\n[ \t\r\n]*[ \t]/),
 
         // Terminals
         // Dashes are ordinary identifier characters (prefix, infix, or postfix), so
         // `I32-Const` is one key. They are only told apart from the `-`/`->`/`-->`
         // operators by spaces, since whitespace ends a token. The Zig lexer matches.
         key: ($) => /[-_]*\p{Lu}[\p{L}\p{N}_-]*|_/u,
+        // A leading `$` glued directly to an identifier (e.g. `$x`, `$problem_id`)
+        // is a constant key, letting otherwise variable-looking (lowercase) names
+        // be matched literally. A lone `$` or `$ name` stays an ordinary symbol.
+        constant: ($) => /\$[\p{L}\p{N}_][\p{L}\p{N}_-]*/u,
         variable: ($) => /[-_]*\p{Ll}[\p{L}\p{N}_-]*/u,
         var_pattern: ($) => /_*\*\p{Ll}[\p{L}\p{N}_-]*/u,
         number: ($) => /[0-9]+(\.[0-9]+)?/,
+        // Double- and single-quoted strings are distinct tokens. Single quotes
+        // are common in SQL string literals; both round-trip verbatim.
         string: ($) => /"([^"\\]|\\.)*"/,
+        single_string: ($) => /'([^'\\]|\\.)*'/,
 
-        // Negative token precedence ensures reserved literals always win
-        symbol: ($) => token(prec(-1, /[:!@$%^&*+\-=|<>?\/\\~`\p{S}]+/u)),
+        // The reference lexer does maximal munch over operator characters, then
+        // treats the run as a reserved operator only when it exactly equals one
+        // (`:`, `->`, `::`, `-->`); otherwise it is a `symbol`. So `:>` is a
+        // single symbol, not `:` followed by `>`. Matching that here relies on
+        // tree-sitter's lexer rules: the longest match wins (so a multi-char run
+        // beats a one-char literal), and on a tie the string literals (the
+        // reserved operators) are preferred over this regex token. Hence no
+        // explicit token precedence.
+        // Brackets are ordinary symbol characters, not special syntax: the
+        // evaluator implements lists itself by matching them like identifiers.
+        symbol: ($) => token(/[:!@$%^&*+\-=|<>?\/\\~`\[\]\p{S}]+/u),
 
         comment: ($) => token(seq("#", /.*/)),
     },

@@ -30,16 +30,6 @@
             "named": true
           }
         ]
-      },
-      "trailing": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "\n",
-            "named": false
-          }
-        ]
       }
     }
   },
@@ -82,6 +72,38 @@
             "named": true
           },
           {
+            "type": "indent_group",
+            "named": true
+          },
+          {
+            "type": "infix",
+            "named": true
+          },
+          {
+            "type": "match",
+            "named": true
+          },
+          {
+            "type": "terms",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "indent_group",
+    "named": true,
+    "fields": {
+      "lhs": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "arrow",
+            "named": true
+          },
+          {
             "type": "infix",
             "named": true
           },
@@ -95,16 +117,46 @@
           }
         ]
       },
-      "trailing": {
+      "rhs": {
         "multiple": false,
         "required": false,
         "types": [
           {
-            "type": "\n",
-            "named": false
+            "type": "arrow",
+            "named": true
+          },
+          {
+            "type": "comma",
+            "named": true
+          },
+          {
+            "type": "indent_group",
+            "named": true
+          },
+          {
+            "type": "infix",
+            "named": true
+          },
+          {
+            "type": "match",
+            "named": true
+          },
+          {
+            "type": "terms",
+            "named": true
           }
         ]
       }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "indent",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -160,16 +212,6 @@
             "named": true
           }
         ]
-      },
-      "trailing": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "\n",
-            "named": false
-          }
-        ]
       }
     }
   },
@@ -187,6 +229,10 @@
           },
           {
             "type": "comma",
+            "named": true
+          },
+          {
+            "type": "indent_group",
             "named": true
           },
           {
@@ -216,6 +262,10 @@
             "named": true
           },
           {
+            "type": "indent_group",
+            "named": true
+          },
+          {
             "type": "infix",
             "named": true
           },
@@ -234,16 +284,6 @@
           {
             "type": "terms",
             "named": true
-          }
-        ]
-      },
-      "trailing": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "\n",
-            "named": false
           }
         ]
       }
@@ -266,6 +306,10 @@
             "named": true
           },
           {
+            "type": "indent_group",
+            "named": true
+          },
+          {
             "type": "infix",
             "named": true
           },
@@ -292,6 +336,10 @@
             "named": true
           },
           {
+            "type": "indent_group",
+            "named": true
+          },
+          {
             "type": "infix",
             "named": true
           },
@@ -310,16 +358,6 @@
           {
             "type": "terms",
             "named": true
-          }
-        ]
-      },
-      "trailing": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "\n",
-            "named": false
           }
         ]
       }
@@ -356,16 +394,6 @@
             "named": true
           }
         ]
-      },
-      "trailing": {
-        "multiple": false,
-        "required": false,
-        "types": [
-          {
-            "type": "\n",
-            "named": false
-          }
-        ]
       }
     }
   },
@@ -383,6 +411,10 @@
           },
           {
             "type": "comma",
+            "named": true
+          },
+          {
+            "type": "indent_group",
             "named": true
           },
           {
@@ -434,6 +466,10 @@
             "named": true
           },
           {
+            "type": "indent_group",
+            "named": true
+          },
+          {
             "type": "infix",
             "named": true
           },
@@ -482,6 +518,10 @@
             "named": true
           },
           {
+            "type": "indent_group",
+            "named": true
+          },
+          {
             "type": "infix",
             "named": true
           },
@@ -516,6 +556,10 @@
             "named": true
           },
           {
+            "type": "indent_group",
+            "named": true
+          },
+          {
             "type": "infix",
             "named": true
           },
@@ -545,11 +589,22 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "newline",
+          "named": true
+        }
+      ]
     }
   },
   {
     "type": "pattern",
     "named": true,
+    "root": true,
     "fields": {},
     "children": {
       "multiple": false,
@@ -561,6 +616,10 @@
         },
         {
           "type": "comma",
+          "named": true
+        },
+        {
+          "type": "indent_group",
           "named": true
         },
         {
@@ -608,6 +667,10 @@
           },
           {
             "type": "comma",
+            "named": true
+          },
+          {
+            "type": "indent_group",
             "named": true
           },
           {
@@ -659,6 +722,10 @@
             "named": true
           },
           {
+            "type": "indent_group",
+            "named": true
+          },
+          {
             "type": "infix",
             "named": true
           },
@@ -690,6 +757,10 @@
           },
           {
             "type": "comma",
+            "named": true
+          },
+          {
+            "type": "indent_group",
             "named": true
           },
           {
@@ -733,6 +804,14 @@
       "required": true,
       "types": [
         {
+          "type": "comment",
+          "named": true
+        },
+        {
+          "type": "constant",
+          "named": true
+        },
+        {
           "type": "key",
           "named": true
         },
@@ -753,6 +832,10 @@
           "named": true
         },
         {
+          "type": "single_string",
+          "named": true
+        },
+        {
           "type": "string",
           "named": true
         },
@@ -766,14 +849,6 @@
         }
       ]
     }
-  },
-  {
-    "type": "\n",
-    "named": false
-  },
-  {
-    "type": "#{",
-    "named": false
   },
   {
     "type": "(",
@@ -816,11 +891,27 @@
     "named": true
   },
   {
+    "type": "constant",
+    "named": true
+  },
+  {
+    "type": "indent",
+    "named": true
+  },
+  {
     "type": "key",
     "named": true
   },
   {
+    "type": "newline",
+    "named": true
+  },
+  {
     "type": "number",
+    "named": true
+  },
+  {
+    "type": "single_string",
     "named": true
   },
   {
@@ -845,10 +936,6 @@
   },
   {
     "type": "}",
-    "named": false
-  },
-  {
-    "type": "}#",
     "named": false
   }
 ]
